@@ -72,10 +72,18 @@ function Base.show(io::IO, p::BackgroundPlayer)
           *"  Stream: $(p.stream)\n\n  Src: $(p.src)")
 end
 
-function _async_println(args...)
+function _async_println(io, args...)
     @async begin
-        println(args...)
-        flush(stdout)
+        println(io, args...)
+        flush(io)
+    end
+end
+
+function _async_print_error(io, msg, e)
+    @async begin
+        print(io, msg)
+        showerror(io, e)
+        flush(io)
     end
 end
 
@@ -84,14 +92,15 @@ function _background_play(ref::WeakRef, stop::Threads.Atomic{Bool})
     try
         while true
             stop[] && break
-            quit, play, play_sync = _background_play_inner(ref)
+            quit, play, play_sync = Base.invokelatest(
+                                        _background_play_inner, ref)
             quit && break
             play || lock(play_sync.lock) do
                 wait(play_sync)  # Wait until allowed to play
             end
         end
     catch e
-        _async_println(stderr, "background player error: $e")
+        _async_print_error(stderr, "Error in BackgroundPlayer thread:\n", e)
     end
 end
 function _background_play_inner(ref::WeakRef)
@@ -100,6 +109,7 @@ function _background_play_inner(ref::WeakRef)
     player = p
     p = nothing
     samples = Ref{Any}(nothing)
+    play_sync = player._play_sync
     play = lock(player._play_lock) do
         play = lock(player._lock) do
             play = player._is_playing
@@ -117,8 +127,8 @@ function _background_play_inner(ref::WeakRef)
                     "too many samples from source "
                     *"($(size(samples[])[1]) > $bs)")
             catch e
-                _async_println(
-                    stderr, "background error while playing $(player.src): $e")
+                _async_print_error(
+                    stderr, "Error while playing $(player.src):\n", e)
                 player._is_playing = false
                 player = nothing
                 return false
@@ -128,7 +138,6 @@ function _background_play_inner(ref::WeakRef)
         play && write(player.stream, samples[])
         play
     end
-    play_sync = player._play_sync
     player = nothing  # Release reference while waiting
     false, play, play_sync
 end
