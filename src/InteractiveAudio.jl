@@ -5,6 +5,15 @@ See [documentation and examples](https://github.com/cduck/InteractiveAudio.jl).
 """
 module InteractiveAudio
 
+using Base.Threads
+using Base: lock, unlock, trylock, islocked, ReentrantLock
+
+using SampledSignals
+using PortAudio
+
+export BackgroundPlayer, AbstractAudioGenerator, NullAudioGenerator,
+    SampleAudioGenerator, play, pause, is_playing, lock_player
+
 
 include("audio_generator.jl")
 include("background_player.jl")
