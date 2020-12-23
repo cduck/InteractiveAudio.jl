@@ -11,12 +11,17 @@ using Base: lock, unlock, trylock, islocked, ReentrantLock
 using SampledSignals
 using PortAudio
 
-export BackgroundPlayer, AbstractAudioGenerator, NullAudioGenerator,
-    SampleAudioGenerator, play, pause, is_playing, lock_player
+export BackgroundPlayer, play, pause, is_playing, lock_player
+export AbstractAudioGenerator, NullAudioGenerator, SampleAudioGenerator,
+    SineAudioGenerator, SumAudioGenerator, MutateAudioGenerator
 
 
 include("audio_generator.jl")
 include("background_player.jl")
+include("sample_audio_generator.jl")
+include("sine_audio_generator.jl")
+include("sum_audio_generator.jl")
+include("mutate_audio_generator.jl")
 
 
 end
